@@ -130,7 +130,7 @@ func connectToPeer(address string) (net.Conn, *bufio.Reader) {
 // Runs the server at the given port, assigns its own ID and address, and
 // starts listening to connections.
 func serverRunner(port string) {
-	ls, err := net.Listen("tcp", "localhost:"+port)
+	ls, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Println("Could not start the server.")
 		log.Fatalln(err)
