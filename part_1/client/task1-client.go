@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var mainMenuMsg string = `
@@ -94,9 +95,15 @@ func main() {
 		} else if strings.HasPrefix(serverResponse, "MSG") {
 			handleMessage(conn, extractArg(serverResponse))
 		} else if strings.HasPrefix(serverResponse, "STORE") {
+			start := time.Now()
 			handleStore(conn, extractArg(serverResponse))
+			elapsed := time.Since(start)
+			fmt.Println("Transfer took", elapsed.Milliseconds(), "ms")
 		} else if strings.HasPrefix(serverResponse, "RETRIEVE") {
+			start := time.Now()
 			handleRetrieve(conn, extractArg(serverResponse))
+			elapsed := time.Since(start)
+			fmt.Println("Transfer took", elapsed.Milliseconds(), "ms")
 		} else if strings.HasPrefix(serverResponse, "CLOSE") {
 			fmt.Println("Goodbye!")
 			conn.Close()
