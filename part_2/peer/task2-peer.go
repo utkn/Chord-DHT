@@ -19,6 +19,7 @@ type node struct {
 	ID      int
 }
 
+// Creates a `nil` node.
 func newNode() node {
 	return node{
 		Address: "",
@@ -50,6 +51,19 @@ var predecessor = newNode()
 // The map of stored files' names to their keys.
 var storedFiles = make(map[string]int)
 var storedFilesMutex sync.Mutex
+
+// Finds the outbound IP of this peer.
+func getOutboundIP() string {
+	// Create a mock connection through udp.
+	mock, err := net.Dial("udp", "0.0.0.0:100")
+	defer mock.Close()
+	if err != nil {
+		log.Println("Could not create outbound IP")
+		log.Fatalln(err)
+	}
+	// Return the outbound IP from the connection.
+	return mock.LocalAddr().(*net.UDPAddr).IP.String()
+}
 
 // Returns the full file path of the given file on the peer.
 func filePath(fileName string) string {
@@ -122,7 +136,7 @@ func serverRunner(port string) {
 		log.Fatalln(err)
 	}
 	// Acquire self address and id.
-	self.Address = ls.Addr().String()
+	self.Address = getOutboundIP()
 	self.ID = hsh(self.Address)
 	for {
 		// Wait for a connection.
