@@ -156,7 +156,6 @@ func handleRequest(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	request, _ := reader.ReadString('\n')
 	request = strings.TrimSpace(request)
-	log.Println("received", request)
 	if strings.HasPrefix(request, "JOIN") {
 		handleJoinRequest(conn, reader, request)
 	} else if strings.HasPrefix(request, "SUCC") {

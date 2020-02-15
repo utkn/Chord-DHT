@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var mainMenu = `
@@ -190,13 +191,19 @@ func main() {
 			fmt.Print("> Enter the file name to store: ")
 			var fileName string
 			fmt.Scanln(&fileName)
+			start := time.Now()
 			storeFile(fileName, storeAddr)
+			elapsed := time.Since(start)
+			fmt.Println("Transfer took", elapsed.Microseconds(), "us")
 		case 2:
 			// Ask the filename to hash.
 			fmt.Print("> Enter the file name to retrieve: ")
 			var fileName string
 			fmt.Scanln(&fileName)
+			start := time.Now()
 			retrieveFile(fileName, storeAddr)
+			elapsed := time.Since(start)
+			fmt.Println("Transfer took", elapsed.Microseconds(), "us")
 		case 3:
 			fmt.Println("Goodbye!")
 			return
