@@ -148,7 +148,8 @@ func handleSession(conn net.Conn, session Session) {
 
 func main() {
 	// Launch the server.
-	port := "8080"
+	port := os.Args[1]
+
 	fmt.Printf("Launching the server at the port %s...\n", port)
 	lst, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
