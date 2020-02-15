@@ -42,6 +42,9 @@ func connectToPeer(address string) (net.Conn, *bufio.Reader) {
 	return conn, reader
 }
 
+// The server sends responses in the following form:
+// OK/ERR <msg>\n
+// This method returns these separately(e.g. "ERR No file found\n" => "ERR", "No file found.")
 func extractServerResponse(resp string) (string, string) {
 	resp = strings.TrimSpace(resp)
 	var prefix string
@@ -61,7 +64,8 @@ func extractServerResponse(resp string) (string, string) {
 }
 
 // Constructs a store request with the file name to store, then sends the file.
-// STORE <file name> <file size>, followed by the file itself.
+// (1) finds the successor (owner) of the file through the given peer.
+// (2) uploads the file to the owner of the file.
 func storeFile(fileName string, peerAddr string) {
 	// Find the successor (owner) of the file.
 	fileKey := hsh(fileName)
@@ -102,6 +106,9 @@ func storeFile(fileName string, peerAddr string) {
 	fmt.Println("File successfully stored.")
 }
 
+// Retrieves the given file from the peer.
+// (1) finding the successor of the file through the peer.
+// (2) downloading the file through that successor.
 func retrieveFile(fileName string, peerAddr string) {
 	// Find the successor (owner) of the file.
 	fileKey := hsh(fileName)

@@ -137,6 +137,7 @@ func serverRunner(port string) {
 	}
 }
 
+// Multiplexer for the requests from the clients
 func handleRequest(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	request, _ := reader.ReadString('\n')
@@ -155,6 +156,8 @@ func handleRequest(conn net.Conn) {
 	}
 }
 
+// Handles a `RETRIEVE` request (RETRIEVE <file name>)
+// Sends back the size of the file, then directly uploads the file through the connection.
 func handleRetrieveRequest(conn net.Conn, reader *bufio.Reader, request string) {
 	tokens := strings.Split(request, " ")
 	fileName := tokens[1]
@@ -184,6 +187,8 @@ func handleRetrieveRequest(conn net.Conn, reader *bufio.Reader, request string) 
 	conn.Write([]byte("OK\n"))
 }
 
+// Handles a `STORE` request (STORE <file name> <file size>)
+// Downloads the file from the client and saves it into local storage.
 func handleStoreRequest(conn net.Conn, reader *bufio.Reader, request string) {
 	tokens := strings.Split(request, " ")
 	// Acquire the file name & size.
