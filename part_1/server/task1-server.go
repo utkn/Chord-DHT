@@ -13,16 +13,29 @@ import (
 	"strings"
 )
 
+// Session represents a session of a client.
 type Session struct {
 	SessionID int
 	UserName  string
 }
 
+// Returns the requested file by the given session. We create folders
+// for each user in order to separate their files.
+func getUserFile(conn net.Conn, session Session, fileName string) (*os.File, error) {
+	fullFilePath := filepath.Join(session.UserName, fileName)
+	f, err := os.Open(fullFilePath)
+	return f, err
+}
+
+// Sends a response to the client in the form of <RESP TYPE> <ARGUMENT>
+// In the client, these will be evaluated as a command and its argument.
 func sendResponse(conn net.Conn, respType string, arg string) {
 	conn.Write([]byte(respType + " " + arg + "\n"))
 }
 
+// Creates/truncates a new file for the user. Does not write anything into it.
 func createUserFile(conn net.Conn, clientReader *bufio.Reader, session Session, fileName string) (*os.File, error) {
+	// Create the user directory if it doesn't exist.
 	_, err := os.Stat(session.UserName)
 	if os.IsNotExist(err) {
 		os.MkdirAll(session.UserName, 0777)
@@ -30,15 +43,19 @@ func createUserFile(conn net.Conn, clientReader *bufio.Reader, session Session, 
 			fmt.Println("* Created user directory for", session.UserName)
 		}
 	}
+	// Try to find the file.
 	fullFilePath := filepath.Join(session.UserName, fileName)
 	_, err = os.Stat(fullFilePath)
 	if !os.IsNotExist(err) {
+		// If the file already exists, ask the client to confirm overwriting
+		// the old file.
 		overwrite, _ := askInput(conn, clientReader,
 			"File "+fileName+" already exists. Overwrite? (Y/N)")
 		if strings.ToLower(overwrite) != "y" {
 			return nil, errors.New("canceled by the user")
 		}
 	}
+	// Create/truncate the file.
 	f, err := os.Create(fullFilePath)
 	if err != nil {
 		return nil, err
@@ -47,12 +64,7 @@ func createUserFile(conn net.Conn, clientReader *bufio.Reader, session Session, 
 	return f, nil
 }
 
-func getUserFile(conn net.Conn, session Session, fileName string) (*os.File, error) {
-	fullFilePath := filepath.Join(session.UserName, fileName)
-	f, err := os.Open(fullFilePath)
-	return f, err
-}
-
+// Sends a `PROMPT` response to the client.
 func askInput(conn net.Conn, clientReader *bufio.Reader, msg string) (string, error) {
 	sendResponse(conn, "PROMPT", msg)
 	input, err := clientReader.ReadString('\n')
@@ -62,6 +74,7 @@ func askInput(conn net.Conn, clientReader *bufio.Reader, msg string) (string, er
 	return strings.TrimSpace(input), nil
 }
 
+// Handles the `login` selection of the client.
 func handleLogin(conn net.Conn, clientReader *bufio.Reader, session *Session) {
 	input, err := askInput(conn, clientReader, "Enter username")
 	if err != nil {
@@ -74,6 +87,7 @@ func handleLogin(conn net.Conn, clientReader *bufio.Reader, session *Session) {
 	sendResponse(conn, "MENU", session.UserName)
 }
 
+// Handles the `store a file` selection of the client.
 func handleStore(conn net.Conn, clientReader *bufio.Reader, session Session) {
 	fileName, _ := askInput(conn, clientReader, "Enter the file name to store")
 	dstFile, err := createUserFile(conn, clientReader, session, fileName)
@@ -97,6 +111,7 @@ func handleStore(conn net.Conn, clientReader *bufio.Reader, session Session) {
 	sendResponse(conn, "MSG", "File successfully stored.")
 }
 
+// Handles the `retrieve a file` request of the client.
 func handleRetrieve(conn net.Conn, clientReader *bufio.Reader, session Session) {
 	fileName, _ := askInput(conn, clientReader, "Enter the file name to retrieve")
 	srcFile, err := getUserFile(conn, session, fileName)
@@ -122,6 +137,8 @@ func handleRetrieve(conn net.Conn, clientReader *bufio.Reader, session Session) 
 func handleSession(conn net.Conn, session Session) {
 	clientReader := bufio.NewReader(conn)
 	sendResponse(conn, "MENU", session.UserName)
+	// Each session has its own loop where the server asks the client for a selection
+	// and according to the selection, the server does the job.
 	for {
 		// Ask for choice.
 		input, err := askInput(conn, clientReader, "Please choose an option")
@@ -131,7 +148,7 @@ func handleSession(conn net.Conn, session Session) {
 		}
 		var chosenOption int
 		fmt.Sscanf(input, "%d", &chosenOption)
-
+		// Find the correct handler according to the selection.
 		switch chosenOption {
 		case 1:
 			handleLogin(conn, clientReader, &session)
@@ -140,6 +157,8 @@ func handleSession(conn net.Conn, session Session) {
 		case 3:
 			handleRetrieve(conn, clientReader, session)
 		case 4:
+			// Confirm the closure of the connection by sending back a
+			// CLOSE response.
 			sendResponse(conn, "CLOSE", "")
 			break
 		}
@@ -147,17 +166,16 @@ func handleSession(conn net.Conn, session Session) {
 }
 
 func main() {
-	// Launch the server.
+	// Acquire the server port.
 	port := os.Args[1]
-
+	// Launch the server.
 	fmt.Printf("Launching the server at the port %s...\n", port)
-	lst, err := net.Listen("tcp", "localhost:"+port)
+	lst, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalf("Could not create the server: %s", err)
 	}
-
 	lastSessionID := 0
-	fmt.Println("Listening for connections.")
+	// Main program loop.
 	for {
 		// Accept a connection.
 		conn, err := lst.Accept()
