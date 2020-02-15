@@ -62,6 +62,7 @@ func getSelfIP() string {
 			return ipv4.String()
 		}
 	}
+	return ""
 }
 
 // Returns the full file path of the given file on the peer.
