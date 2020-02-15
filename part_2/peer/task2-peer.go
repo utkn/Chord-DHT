@@ -135,7 +135,7 @@ func serverRunner(port string) {
 		log.Fatalln(err)
 	}
 	// Acquire self address and id.
-	self.Address = ls.Addr().String()
+	self.Address = getSelfIP() + ":" + port
 	self.ID = hsh(self.Address)
 	for {
 		// Wait for a connection.
