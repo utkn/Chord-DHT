@@ -52,17 +52,16 @@ var predecessor = newNode()
 var storedFiles = make(map[string]int)
 var storedFilesMutex sync.Mutex
 
-// Finds the outbound IP of this peer.
-func getOutboundIP() string {
-	// Create a mock connection through udp.
-	mock, err := net.Dial("udp", "0.0.0.0:100")
-	defer mock.Close()
-	if err != nil {
-		log.Println("Could not create outbound IP")
-		log.Fatalln(err)
+// Finds the IP (v4) of this peer.
+// Taken from https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
+func getSelfIP() string {
+	host, _ := os.Hostname()
+	addrs, _ := net.LookupIP(host)
+	for _, addr := range addrs {
+		if ipv4 := addr.To4(); ipv4 != nil {
+			return ipv4.String()
+		}
 	}
-	// Return the outbound IP from the connection.
-	return mock.LocalAddr().(*net.UDPAddr).IP.String()
 }
 
 // Returns the full file path of the given file on the peer.
@@ -136,7 +135,7 @@ func serverRunner(port string) {
 		log.Fatalln(err)
 	}
 	// Acquire self address and id.
-	self.Address = getOutboundIP()
+	self.Address = ls.Addr().String()
 	self.ID = hsh(self.Address)
 	for {
 		// Wait for a connection.
